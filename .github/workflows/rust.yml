@@ -1,32 +1,23 @@
-
-name: Release
-
-permissions:
-  contents: write
-
+name: Rust-static-build
 on:
   push:
-    tags:
-      - v[0-9]+.*
-
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+env:
+  CARGO_TERM_COLOR: always
+  BUILD_TARGET: x86_64-unknown-linux-gnu
+  BINARY_NAME: hello-cicd
 jobs:
-  create-release:
-    runs-on: ubuntu-20.04
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          # (required) GitHub token for creating GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  upload-assets:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
-          # Note that glob pattern is not supported yet.
-          bin: hello-cicd
-          # (required) GitHub token for uploading assets to GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Build-gnu
+      uses: gmiam/rust-musl-action@master
+      with:
+        args: cargo build --target $BUILD_TARGET --release
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.BINARY_NAME }}
+        path: target/x86_64-unknown-linux-gnu/release/${{ env.BINARY_NAME }}*
