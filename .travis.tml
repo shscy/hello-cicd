@@ -1,0 +1,15 @@
+language: rust
+rust: stable
+
+script:
+  - cargo build 
+  - cargo test 
+
+branches:
+  only:
+    # Pushes and PR to the master branch
+    - master
+    
+notifications:
+  email:
+    on_success: never
