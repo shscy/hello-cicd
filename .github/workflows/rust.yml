@@ -7,7 +7,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   BUILD_TARGET: x86_64-unknown-linux-gnu
-  BINARY_NAME: hello-cicd
+  BINARY_NAME: libhello_cicd
 jobs:
   build:
     runs-on: ubuntu-latest
