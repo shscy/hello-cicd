@@ -237,7 +237,7 @@ impl Db {
 }
 
 #[cfg(target_os = "linux")]
-fn create_file() -> std::fs::File {
+fn create_file(file_name: &str) -> std::fs::File {
     use std::{fs::OpenOptions, os::unix::fs::OpenOptionsExt};
     const O_DIRECT: i32 = 0o0040000;
     OpenOptions::new()
