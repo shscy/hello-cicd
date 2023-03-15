@@ -1,0 +1,28 @@
+[package]
+name = "experence_persist"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# If you only wanted shared lib, you'd use only "cdylib".
+# If you only wanted static lib, you'd use only "staticlib".
+crate-type = [ "cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+parquet="30.0.0"
+arrow = "30.0.0"
+arrow-array="30.0.0"
+arrow-flight = "30.0.0"
+async-trait = "0.1.41"
+futures = "0.3"
+rand="0.5.0"
+num_cpus = "1.13.0"
+libc="*"
+parking_lot = "0.12.1"
+chrono="*"
+rust-s3 = {version="0.32.0"}
+anyhow="*"
+log = "0.4.0"
+env_logger = "0.10.0"
