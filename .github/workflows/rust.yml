@@ -13,9 +13,20 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-    - name: Buidl
+    - name: Restore cached Primes
+      id: cache-primes-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-primes
+    - name: Build
       run: cargo build --verbose --release
-    - uses: actions/cache@v3
+    - uses: actions/cache/save@v3
       with:
         path: |
           ~/.cargo/bin/
