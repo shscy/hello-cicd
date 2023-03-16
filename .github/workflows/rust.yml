@@ -23,7 +23,7 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-primes
+        key: ${{ runner.os }}-cargo-primes
     - name: Build
       run: cargo build --verbose --release
     - uses: actions/cache/save@v3
@@ -34,7 +34,7 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-primes
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ env.BINARY_NAME }}
