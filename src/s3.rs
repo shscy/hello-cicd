@@ -13,7 +13,6 @@ impl Uploader {
     pub fn upload_retry(&self, local_file: &str) -> anyhow::Result<()> {
         // return Ok(())
         info!("upload s3 file {}", local_file);
-        return Ok(());
         for _ in 0..100 {
             // 300s => 5minutes
             match self.upload(local_file) {
