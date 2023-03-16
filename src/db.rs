@@ -14,12 +14,12 @@ use std::sync::atomic::AtomicU8;
 use std::sync::Arc;
 
 use super::s3::Uploader;
+use log::{debug, error, info, log_enabled, warn, Level};
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use rand::thread_rng;
 use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::channel;
-use log::{debug, error, info, log_enabled, Level, warn};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -77,7 +77,7 @@ struct Writer {
     cond: Arc<parking_lot::Condvar>,
 }
 
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 pub struct Db {
     mu: parking_lot::Mutex<()>,
     buffer: std::ptr::NonNull<VecDeque<*const Writer>>,
@@ -87,7 +87,7 @@ pub struct Db {
 }
 
 impl Db {
-    pub fn init(root: &str) -> Self {        
+    pub fn init(root: &str) -> Self {
         let buffer = unsafe {
             let buf = Box::into_raw(Box::new(VecDeque::new()));
             std::ptr::NonNull::new_unchecked(buf)
@@ -96,67 +96,65 @@ impl Db {
         let (sender, rec) = channel();
         let par_file = ParFile::new(root, sender);
         let active_files = par_file.active_file_nams.clone();
-       
+
         let (close_send, close_recv) = channel();
-       
+
         let par_file = unsafe {
             let buf = Box::into_raw(Box::new(par_file));
             std::ptr::NonNull::new_unchecked(buf)
         };
 
-        std::thread::spawn(move || {
-            loop {
-                {
-                    if let Ok(Some(v)) = rec.recv() {
-                        let mut failed = Vec::new();
-                        loop {
-                            let mut guand = active_files.lock();
-                            if (*guand).len() == 1 {
-                                break;
-                            }
+        std::thread::spawn(move || loop {
+            {
+                if let Ok(Some(_)) = rec.recv() {
+                    let mut failed = Vec::new();
+                    loop {
+                        let mut guand = active_files.lock();
+                        if (*guand).len() == 1 {
+                            break;
+                        }
 
-                            let file_name = (*guand).pop_front().unwrap();
-                            drop(guand);
-                            let up = Uploader {};
-                            if let Err(e) = up.upload_retry(file_name.as_str()) {
-                                failed.push(file_name);
-                            }
+                        let file_name = (*guand).pop_front().unwrap();
+                        drop(guand);
+                        let up = Uploader {};
+                        if let Err(e) = up.upload_retry(file_name.as_str()) {
+                            error!("upload error {:?}", e);
+                            failed.push(file_name);
                         }
-                        for item in failed {
-                            let mut guand = active_files.lock();
-                            (*guand).push_back(item);
-                        }
-                    } else {
-                        info!("recv close signal, start to upload all files to ");
-                        loop {
-                            let mut guand = active_files.lock();
-                            if (*guand).is_empty() {
-                                break;
-                            }
-
-                            let file_name = (*guand).pop_front().unwrap();
-                            drop(guand);
-                            let up = Uploader {};
-                            if let Err(e) = up.upload_retry(file_name.as_str()) {
-                                let mut guand = active_files.lock();
-                                (*guand).push_back(file_name);
-                            }
-                        }
-                        close_send.send(()).unwrap();
-                        return ;
                     }
+                    for item in failed {
+                        let mut guand = active_files.lock();
+                        (*guand).push_back(item);
+                    }
+                } else {
+                    info!("recv close signal, start to upload all files to ");
+                    loop {
+                        let mut guand = active_files.lock();
+                        if (*guand).is_empty() {
+                            break;
+                        }
+
+                        let file_name = (*guand).pop_front().unwrap();
+                        drop(guand);
+                        let up = Uploader {};
+                        if let Err(e) = up.upload_retry(file_name.as_str()) {
+                            let mut guand = active_files.lock();
+                            (*guand).push_back(file_name);
+                        }
+                    }
+                    close_send.send(()).unwrap();
+                    return;
                 }
             }
         });
         Db {
             mu: parking_lot::Mutex::new(()),
-            buffer: buffer,
+            buffer,
             cond: Arc::new(parking_lot::Condvar::new()),
             log_writer: par_file,
             close_recv,
         }
     }
-
 
     pub fn close(&self) {
         let log_writer = unsafe { &mut *self.log_writer.as_ptr() };
@@ -170,7 +168,7 @@ impl Db {
 
     pub fn write(&self, event: *const Event) {
         let wr = Writer {
-            event: event,
+            event,
             cond: self.cond.clone(),
             done: false,
         };
@@ -267,7 +265,7 @@ pub struct ParFile {
     suffix: u32,
     active_file_nams: Arc<Mutex<VecDeque<String>>>,
     close: AtomicU8,
-    file_name_sender: Sender<Option<String>>
+    file_name_sender: Sender<Option<String>>,
 }
 
 impl ParFile {
@@ -334,7 +332,7 @@ impl ParFile {
     fn append(&mut self, bwg: &mut BatchWrite) {
         if self.close.load(std::sync::atomic::Ordering::SeqCst) == 1 {
             warn!("close is closestatus, ignore append");
-            return 
+            return;
         }
         // Local::now();
         let now = Local::now();
@@ -356,7 +354,7 @@ impl ParFile {
             }
             None => {
                 let name = self.build_filename(now.as_str());
-                info!("file is None, create one {} ", name.as_str());   
+                info!("file is None, create one {} ", name.as_str());
                 {
                     let mut guand = self.active_file_nams.lock();
                     (*guand).push_back(name.clone());

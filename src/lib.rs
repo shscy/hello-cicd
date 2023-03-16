@@ -2,8 +2,8 @@ use std::{os::raw::c_char, sync::Arc};
 mod db;
 mod s3;
 
-use std::ffi::{CStr, CString};
 use db::*;
+use std::ffi::{CStr, CString};
 
 #[repr(C)]
 pub struct Writer {
@@ -19,7 +19,9 @@ pub extern "C" fn write_db(w: *mut Writer, event: *const Event) {
 #[no_mangle]
 pub extern "C" fn init_db(w: *mut Writer) {
     env_logger::init();
-    let _db = Box::new(Arc::new(db::Db::init("/Users/zuoxiaoliang/project/rust/experence_persist/db")));
+    let _db = Box::new(Arc::new(db::Db::init(
+        "/Users/zuoxiaoliang/project/rust/experence_persist/db",
+    )));
     let ptr = Box::into_raw(_db);
     unsafe {
         (*w)._db = ptr;
@@ -77,11 +79,11 @@ mod tests {
     use chrono::{Local, Utc};
     use std::ffi::{CStr, CString};
     #[test]
-    fn a(){
+    fn a() {
         println!("11");
     }
-    
-    fn signal_close(){
+
+    fn signal_close() {
         let mut db = Arc::new(Db::init(
             "/Users/zuoxiaoliang/project/rust/experence_persist/db",
         ));
@@ -102,7 +104,6 @@ mod tests {
         // db.write(&event as *const Event);
         // db.close();
         // db.close_db();
-
     }
 
     #[test]
@@ -147,7 +148,7 @@ mod tests {
         // let end = Utc::now().timestamp_millis();
         // println!("cost {:?}", (end - now));
         let size = ParFile::read_file(
-            "/Users/zuoxiaoliang/project/rust/experence_persist/db/20230315_19_1.parquet",
+            "/Users/zuoxiaoliang/project/rust/experence_persist/db/20230316_17_1.parquet",
         );
         println!("all record size  {} \n", size);
         assert_eq!(size, 10 * 1000 as usize, "size shoud be 10*1000")

@@ -4,7 +4,6 @@ use s3::bucket::Bucket;
 use s3::creds::Credentials;
 use s3::error::S3Error;
 
-
 use log::{debug, error, info, log_enabled, Level};
 
 pub struct Uploader {}
@@ -28,7 +27,7 @@ impl Uploader {
 
     pub fn upload(&self, local_file: &str) -> anyhow::Result<()> {
         let start = Local::now().timestamp_millis();
-     
+
         let file_name = local_file.split("/").last().unwrap();
         // 20221012_14_01.parquet 这种格式
         let names = file_name.split("_").collect::<Vec<_>>();
@@ -36,7 +35,7 @@ impl Uploader {
             let mut s3_key = names.join("/");
             let extend = format!("_{}", Local::now().timestamp_millis());
             s3_key.extend(extend.chars());
-            s3_key 
+            s3_key
         } else {
             // let c = format!("file_name is not support {:?}", local_file);
             panic!("file_name is not support");
@@ -55,16 +54,25 @@ impl Uploader {
         let s3_path = s3_key.as_str();
         let content = std::fs::read(s3_path)?;
         use futures::executor;
-    
+
         let response_data = bucket.put_object(s3_path, content.as_slice());
         let response_data = executor::block_on(response_data)?;
         if response_data.status_code() != 200 {
             let data = String::from_utf8_lossy(response_data.bytes());
-            error!("start to upload file_name {} status_code == {} response {}", s3_key.as_str(), response_data.status_code(), data);
+            error!(
+                "start to upload file_name {} status_code == {} response {}",
+                s3_key.as_str(),
+                response_data.status_code(),
+                data
+            );
             anyhow::bail!("status_code is != 200");
         }
         let end = Local::now().timestamp_millis();
-        info!(" upload file_name {} cost {} ms", s3_key.as_str(), end - start);
+        info!(
+            " upload file_name {} cost {} ms",
+            s3_key.as_str(),
+            end - start
+        );
         return Ok(());
     }
 }
