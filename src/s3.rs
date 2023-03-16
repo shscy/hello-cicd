@@ -35,7 +35,7 @@ impl Uploader {
             let mut s3_key = names.join("/");
             let extend = format!("_{}", Local::now().timestamp_millis());
             s3_key.extend(extend.chars());
-            s3_key
+            format!("experience_coupon/{}", s3_key.as_str())
         } else {
             // let c = format!("file_name is not support {:?}", local_file);
             panic!("file_name is not support");
